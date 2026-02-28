@@ -1,0 +1,25 @@
+# Environment variables - never commit secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+
+# OS and editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea
+.vscode/
+
+# Logs and temp
+*.log
+*.tmp
+__pycache__/
+*.py[cod]
+.Python
+venv/
+.venv/
+env/
