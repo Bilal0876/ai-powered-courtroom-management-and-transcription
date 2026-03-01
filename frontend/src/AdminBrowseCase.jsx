@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "./Components/header";
-import "./style.css";
+import "./Styling/adminBrowseCase.css"
 import { API_BASE_URL } from "./config";
 import { apiGet, apiPost } from "./utils/api";
 import Footer from "./Components/footer";
@@ -142,88 +142,90 @@ export default function AdminBrowseCases({ setCurrentPage }) {
                         </div>
 
                         {/* ✅ Full-width table */}
-                        <table className="case-table full-width">
-                            <thead>
-                                <tr>
-                                    <th>Case Number</th>
-                                    <th>Case Type</th>
-                                    <th>Title</th>
-                                    <th>Parties</th>
-                                    <th>Judge</th>
-                                    <th>Stenographer</th>
-                                    <th>Date & Time</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredCases.map((c) => (
-                                    <tr key={c.id}>
-                                        <td><strong>{c.caseCode}</strong></td>
-                                        <td>
-                                            <span
-                                                className={`case-item ${c.caseType.toLowerCase()}`}
-                                                style={{ display: "inline-block" }}
-                                            >
-                                                {c.caseType}
-                                            </span>
-                                        </td>
-                                        <td>{c.caseTitle}</td>
-                                        <td>{c.party1} vs {c.party2}</td>
-                                        <td>Justice {c.judge}</td>
-                                        <td>{c.steno}</td>
-                                        <td>
-                                            {c.hearingDate ? `${c.hearingDate} ${c.hearingTime}` : "Not Scheduled"}
-                                        </td>
-
-                                        <td>
-                                            <span
-                                                className={`status-badge status-${c.status
-                                                    .toLowerCase()
-                                                    .replace(" ", "-")}`}
-                                            >
-                                                {c.status}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <button
-                                                className="logout-btn"
-                                                style={{ backgroundColor: 'grey', marginRight: '10px' }}
-                                                onClick={() =>
-                                                    setSelectedCase({
-                                                        case_code: c.caseCode,
-                                                        case_type: c.caseType,
-                                                        case_title: c.caseTitle,
-                                                        case_status: c.status,
-                                                        case_party1: c.party1,
-                                                        case_party2: c.party2,
-                                                        judge_code: c.judge_code || "",
-                                                        steno_code: c.stenographer || "",
-                                                        court: c.court || "",
-                                                        case_level: c.caseLevel || ""
-                                                    })
-                                                }
-
-                                            >
-                                                Edit
-                                            </button>
-
-                                            <button
-                                                className="logout-btn"
-                                                style={{ background: "red" }}
-                                                onClick={() =>
-                                                    handleDelete({
-                                                        case_code: c.caseCode
-                                                    })
-                                                }
-                                            >
-                                                Delete
-                                            </button>
-                                        </td>
+                        <div className="table-responsive">
+                            <table className="case-table full-width">
+                                <thead>
+                                    <tr>
+                                        <th>Case Number</th>
+                                        <th>Case Type</th>
+                                        <th>Title</th>
+                                        <th>Parties</th>
+                                        <th>Judge</th>
+                                        <th>Stenographer</th>
+                                        <th>Date & Time</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {filteredCases.map((c) => (
+                                        <tr key={c.id}>
+                                            <td><strong>{c.caseCode}</strong></td>
+                                            <td>
+                                                <span
+                                                    className={`case-item ${c.caseType.toLowerCase()}`}
+                                                    style={{ display: "inline-block" }}
+                                                >
+                                                    {c.caseType}
+                                                </span>
+                                            </td>
+                                            <td>{c.caseTitle}</td>
+                                            <td>{c.party1} vs {c.party2}</td>
+                                            <td>Justice {c.judge}</td>
+                                            <td>{c.steno}</td>
+                                            <td>
+                                                {c.hearingDate ? `${c.hearingDate} ${c.hearingTime}` : "Not Scheduled"}
+                                            </td>
+
+                                            <td>
+                                                <span
+                                                    className={`status-badge status-${c.status
+                                                        .toLowerCase()
+                                                        .replace(" ", "-")}`}
+                                                >
+                                                    {c.status}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <button
+                                                    className="logout-btn"
+                                                    style={{ backgroundColor: 'grey', marginRight: '10px' }}
+                                                    onClick={() =>
+                                                        setSelectedCase({
+                                                            case_code: c.caseCode,
+                                                            case_type: c.caseType,
+                                                            case_title: c.caseTitle,
+                                                            case_status: c.status,
+                                                            case_party1: c.party1,
+                                                            case_party2: c.party2,
+                                                            judge_code: c.judge_code || "",
+                                                            steno_code: c.stenographer || "",
+                                                            court: c.court || "",
+                                                            case_level: c.caseLevel || ""
+                                                        })
+                                                    }
+
+                                                >
+                                                    Edit
+                                                </button>
+
+                                                <button
+                                                    className="logout-btn"
+                                                    style={{ background: "red" }}
+                                                    onClick={() =>
+                                                        handleDelete({
+                                                            case_code: c.caseCode
+                                                        })
+                                                    }
+                                                >
+                                                    Delete
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>  
+                        </div>
                     </div>
                     {/* EDIT MODAL */}
                     {selectedCase && (
