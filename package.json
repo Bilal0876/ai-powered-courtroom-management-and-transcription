@@ -1,9 +1,23 @@
 {
+  "name": "ai-powered-courtroom-management",
+  "version": "1.0.0",
+  "description": "Fullstack application for courtroom management",
+  "scripts": {
+    "start": "concurrently \"npm run server\" \"npm run client\"",
+    "dev": "npm start",
+    "server": "cd server && nodemon server.js",
+    "client": "cd client && npm run dev",
+    "install-all": "npm install && cd server && npm install && cd ../client && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.89.0",
     "body-parser": "^2.2.1",
     "express": "^5.2.1",
     "html2pdf.js": "^0.12.1",
-    "multer": "^2.0.2"
+    "multer": "^2.0.2",
+    "pdfkit": "^0.18.0"
   }
 }

@@ -1,0 +1,137 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+.login-box {
+  max-width: 500px;
+  margin: 50px auto;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+}
+
+.login-box .login-header {
+  background: #f8f9fa;
+  padding: 25px;
+  text-align: center;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.login-box .login-title {
+  color: #2c3e50;
+  margin-bottom: 10px;
+  font-size: 1.8rem;
+}
+
+.login-box .login-subtitle {
+  color: #6c757d;
+  font-size: 0.95rem;
+}
+
+.login-box .login-form {
+  padding: 35px;
+}
+
+.login-box .form-group {
+  margin-bottom: 25px;
+  width: 100%;
+  display: block;
+}
+
+.login-box .form-label {
+  display: block;
+  margin-bottom: 8px;
+  color: #495057;
+  font-weight: 600;
+}
+
+.login-box .form-group input,
+.login-box .form-group select {
+  width: 100%;
+  padding: 12px 15px;
+  border: 2px solid #dee2e6;
+  border-radius: 5px;
+  font-size: 16px;
+  box-sizing: border-box;
+  display: block;
+  transition: border-color 0.3s ease;
+  background-color: white;
+  color: #212529;
+  margin: 0;
+}
+
+.login-box .form-group input:focus,
+.login-box .form-group select:focus {
+  border-color: #28a745;
+  outline: none;
+  box-shadow: 0 0 6px rgba(40, 167, 69, 0.25);
+}
+
+.login-box .login-btn {
+  width: 100%;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  background: #28a745;
+  color: white;
+  transition: background 0.2s ease;
+  box-sizing: border-box;
+  display: block;
+}
+
+.login-box .login-btn:hover {
+  background: #1e7e34;
+  transform: translateY(-1px);
+}
+
+.login-box .login-btn:disabled {
+  cursor: not-allowed;
+  background: #218838;
+}
+
+.login-box .login-btn.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-box .spinner-svg {
+  width: 18px;
+  height: 18px;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.login-box .login-footer {
+  text-align: center;
+  padding: 20px;
+  background: #f8f9fa;
+  border-top: 1px solid #dee2e6;
+}
+
+.login-box .footer-link {
+  color: #28a745;
+  text-decoration: none;
+}
+
+.login-box .footer-link:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+  .login-box {
+    margin: 20px;
+    max-width: none;
+  }
+}
