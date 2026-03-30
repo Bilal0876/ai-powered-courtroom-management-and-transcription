@@ -1,136 +1,138 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../components/header";
-import "../assets/styles/style.css";
-import { API_BASE_URL } from "../config";
-import { apiGet, apiPost, apiPut, apiDelete } from "../utils/api";
+import { apiPost } from "../utils/api";
 import Footer from "../components/footer";
 
 export default function ChiefJudgeAddCourt() {
+     const [user, setUser] = useState(null);
      const [form, setForm] = useState({
           courtName: "",
           courtLevel: "",
           courtCity: "",
           courtAddress: "",
           courtPhone: "",
-          courtStatus: "",
+          courtStatus: "Active",
      });
      const navigate = useNavigate();
+
+     useEffect(() => {
+          const storedUser = JSON.parse(localStorage.getItem("user"));
+          if (!storedUser) {
+               navigate("/");
+               return;
+          }
+          setUser(storedUser);
+
+          // Handle browser back button UX
+          window.history.pushState({ page: "add-court" }, "", "");
+          const handlePopState = () => navigate("/chiefJudge-dashboard");
+          window.addEventListener("popstate", handlePopState);
+          return () => window.removeEventListener("popstate", handlePopState);
+     }, [navigate]);
 
      const handleChange = (e) => {
           setForm({ ...form, [e.target.name]: e.target.value });
      };
 
-     const handleSignup = async () => {
+     const handleSubmit = async (e) => {
+          e.preventDefault();
           try {
-               const res = await fetch(`${API_BASE_URL}/register-court`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(form),
-               });
-               const data = await res.json();
-
+               const data = await apiPost("/api/courts/register", form);
                if (data.success) {
-                    alert("✅ User registered successfully!");
-                    // ✅ Reset the form fields
+                    alert("✅ Court registered successfully!");
                     setForm({
                          courtName: "",
                          courtLevel: "",
                          courtCity: "",
                          courtAddress: "",
                          courtPhone: "",
-                         courtStatus: "",
+                         courtStatus: "Active",
                     });
-
-                    // ✅ Go back to dashboard
                     navigate("/chiefJudge-dashboard");
                } else {
                     alert("❌ Error: " + data.message);
                }
           } catch (err) {
-               console.error("❌ Signup failed:", err);
+               console.error("❌ Registration failed:", err);
+               alert("❌ Connection failed. Please check backend server.");
           }
      };
 
-     // ✅ Handle browser back button
-     useEffect(() => {
-          // push a new history state when entering signup page
-          window.history.pushState({ page: "signup" }, "", "");
-
-          const handlePopState = () => {
-               // when user clicks browser back, go to dashboard
-               navigate("/chiefJudge-dashboard");
-          };
-
-          window.addEventListener("popstate", handlePopState);
-
-          return () => {
-               window.removeEventListener("popstate", handlePopState);
-          };
-     });
+     if (!user) return null;
 
      return (
-          <div className="login-container">
-               {/* Header */}
+          <div className="!w-full !min-h-screen !flex !flex-col ![background-color:#f5f5f5] ![font-family:Arial,sans-serif]">
                <Header user={user} />
 
-               {/* Centered box — uses login-box so you get the same look as login page */}
-               <div className="container">
-                    <div className="breadcrumb">
-                         <a href="#" onClick={() => navigate("/chiefJudge-dashboard")}>
+               <div className="!flex-1 !p-[20px]">
+                    {/* Breadcrumb */}
+                    <div className="![background:white] ![padding:15px_20px] ![margin-bottom:20px] ![border-radius:5px] ![box-shadow:0_2px_5px_rgba(0,0,0,0.1)] ![font-size:0.9rem]">
+                         <a href="#" onClick={(e) => { e.preventDefault(); navigate("/chiefJudge-dashboard"); }} className="![text-decoration:none] ![color:#2c3e50] ![font-weight:bold] hover:![text-decoration:underline]">
                               Dashboard
                          </a>{" > "}
-                         <strong>Add New Court</strong>
+                         <strong>Setup New Court</strong>
                     </div>
 
-                    <div className="login-box signup-box">
-                         <div className="login-header">
-                              <h2 className="login-title">Add New Court</h2>
-                              <p className="login-subtitle">Add a new court to the system</p>
+                    <div className="!max-w-[700px] !mx-auto !bg-white !rounded-[15px] !shadow-2xl !overflow-hidden">
+                         <div className="!bg-[#2c3e50] !p-[30px] !text-white !relative">
+                              <div className="!absolute !right-[30px] !top-[30px] !bg-white/10 !p-3 !rounded-full">🏛️</div>
+                              <h2 className="!text-[1.8rem] !font-bold !m-0">Court Establishment</h2>
+                              <p className="!text-white/60 !text-[14px] !mt-2">Formal registration of a new judicial jurisdiction</p>
                          </div>
 
-                         <div className="form">
-                              <div className="form-group">
-                                   <label className="form-label" htmlFor="courtName">Court Name</label>
-                                   <input id="courtName" name="courtName" className="form-input" value={form.courtName} onChange={handleChange} />
+                         <form className="!p-[40px] !space-y-[25px]" onSubmit={handleSubmit}>
+                              <div>
+                                   <label className="!block !text-[12px] !font-bold !text-gray-400 !uppercase !tracking-widest !mb-2">Official Name</label>
+                                   <input name="courtName" className="!w-full !p-[14px] !border-2 !border-gray-100 !rounded-[10px] focus:!border-[#28a745] !outline-none !transition-all" placeholder="e.g., High Court Division IV" value={form.courtName} onChange={handleChange} required />
                               </div>
 
-                              <div className="form-group">
-                                   <label className="form-label" htmlFor="level">Court Level</label>
-                                   <select id="courtLevel" name="courtLevel" className="form-input" value={form.courtLevel} onChange={handleChange}>
-                                        <option value="">Select level</option>
-                                        <option value="High Court">High Court</option>
-                                        <option value="Session Court">Session Court</option>
-                                        <option value="District Court">District Court</option>
-                                        <option value="Tribunal Court">Tribunal Court</option>
-                                   </select>
+                              <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-[20px]">
+                                   <div>
+                                        <label className="!block !text-[12px] !font-bold !text-gray-400 !uppercase !tracking-widest !mb-2">Jurisdiction Level</label>
+                                        <select name="courtLevel" className="!w-full !p-[14px] !border-2 !border-gray-100 !rounded-[10px] focus:!border-[#28a745] !outline-none !transition-all" value={form.courtLevel} onChange={handleChange} required>
+                                             <option value="">Select level...</option>
+                                             <option value="High Court">High Court</option>
+                                             <option value="Session Court">Session Court</option>
+                                             <option value="District Court">District Court</option>
+                                             <option value="Tribunal Court">Tribunal Court</option>
+                                        </select>
+                                   </div>
+                                   <div>
+                                        <label className="!block !text-[12px] !font-bold !text-gray-400 !uppercase !tracking-widest !mb-2">City / District</label>
+                                        <input name="courtCity" className="!w-full !p-[14px] !border-2 !border-gray-100 !rounded-[10px] focus:!border-[#28a745] !outline-none !transition-all" placeholder="e.g., Lahore" value={form.courtCity} onChange={handleChange} required />
+                                   </div>
                               </div>
 
-                              <div className="form-group">
-                                   <label className="form-label" htmlFor="city">City</label>
-                                   <input id="courtCity" name="courtCity" className="form-input" value={form.courtCity} onChange={handleChange} />
+                              <div>
+                                   <label className="!block !text-[12px] !font-bold !text-gray-400 !uppercase !tracking-widest !mb-2">Physical Address</label>
+                                   <textarea name="courtAddress" rows="3" className="!w-full !p-[14px] !border-2 !border-gray-100 !rounded-[10px] focus:!border-[#28a745] !outline-none !transition-all !resize-none" placeholder="Full postal address of the court building..." value={form.courtAddress} onChange={handleChange} required />
                               </div>
 
-                              <div className="form-group">
-                                   <label className="form-label" htmlFor="address">Address</label>
-                                   <input id="courtAddress" name="courtAddress" className="form-input" value={form.courtAddress} onChange={handleChange} />
+                              <div>
+                                   <label className="!block !text-[12px] !font-bold !text-gray-400 !uppercase !tracking-widest !mb-2">Primary Contact Number</label>
+                                   <input name="courtPhone" maxLength="15" className="!w-full !p-[14px] !border-2 !border-gray-100 !rounded-[10px] focus:!border-[#28a745] !outline-none !transition-all" placeholder="+92 XXX XXXXXXX" value={form.courtPhone} onChange={handleChange} required />
                               </div>
 
-                              <div className="form-group">
-                                   <label className="form-label" htmlFor="phone">Phone Number</label>
-                                   <input id="courtPhone" name="courtPhone" maxLength="12" className="form-input" value={form.courtPhone} onChange={handleChange} />
+                              <div className="!pt-4 !flex !flex-col !gap-3">
+                                   <button type="submit" className="!w-full !py-[16px] !bg-[#28a745] !text-white !rounded-[10px] !font-bold !text-[1.1rem] hover:!bg-[#1e7e34] !transition-all !shadow-lg active:!scale-[0.98]">
+                                        Establish Court
+                                   </button>
+                                   <button type="button" onClick={() => navigate("/chiefJudge-dashboard")} className="!w-full !py-[14px] !text-[#2c3e50] !font-bold hover:!bg-gray-50 !rounded-[10px] !transition-all">
+                                        Discard & Go Back
+                                   </button>
                               </div>
+                         </form>
+                    </div>
 
-                              <button className="login-btn" onClick={handleSignup}>Add Court</button>
-                         </div>
-
-                         <div className="login-footer">
-                              <p>Assign case types to Court from dashboard<a href="#" className="footer-link">Terms of Service</a></p>
-                         </div>
+                    <div className="!max-w-[700px] !mx-auto !mt-6 !p-4 !bg-blue-50 !rounded-[8px] !border !border-blue-100 !flex !items-start !gap-3">
+                         <span className="!text-blue-500 !mt-1">ℹ️</span>
+                         <p className="!text-[12px] !text-blue-700 !m-0">
+                              Establishment creates a record. Case specialization (Civil, Criminal, etc.) can be assigned from the <strong className="!cursor-pointer hover:!underline" onClick={() => navigate("/chiefJudge-dashboard")}>Dashboard</strong> after creation.
+                         </p>
                     </div>
                </div>
 
-               {/* Footer */}
                <Footer />
           </div>
      );

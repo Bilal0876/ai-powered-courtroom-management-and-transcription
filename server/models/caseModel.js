@@ -10,8 +10,12 @@ exports.findAll = async () => {
       cd.Case_Party1 AS "party1",
       cd.Case_Party2 AS "party2",
       cd.case_code AS "caseCode",
+      cd.judge_code AS "judge_code",
+      cd.steno_code AS "steno_code",
       ji.judge_name AS "judge",
       si.steno_name AS "steno",
+      cd.court AS "court",
+      cd.case_level AS "caseLevel",
       TO_CHAR(hd.Hearing_Date, 'YYYY-MM-DD') AS "hearingDate",
       TO_CHAR(hd.Hearing_Time, 'HH24:MI') AS "hearingTime"
     FROM case_details cd
@@ -123,4 +127,26 @@ exports.findAllForChiefJudge = async () => {
 exports.saveAudioUrl = async (caseId, audioUrl) => {
   const result = await db.query("UPDATE case_details SET audio_url = $1 WHERE case_id = $2", [audioUrl, caseId]);
   return result.rowCount;
+};
+
+exports.findAllCompleted = async () => {
+  const query = `
+    SELECT 
+      cd.Case_id AS "caseNumber",
+      cd.Case_Type AS "caseType",
+      cd.Case_Title AS "caseTitle",
+      cd.Case_Status AS "status",
+      cd.Case_Party1 AS "party1",
+      cd.Case_Party2 AS "party2",
+      cd.case_code AS "caseCode",
+      ji.judge_name AS "judge",
+      si.steno_name AS "steno"
+    FROM case_details cd
+    LEFT JOIN judge_info ji ON cd.judge_code = ji.Judge_Code
+    LEFT JOIN stenographer_info si ON cd.steno_code = si.steno_Code
+    WHERE cd.Case_Status = 'Completed'
+    ORDER BY cd.Case_id DESC;
+  `;
+  const result = await db.query(query);
+  return result.rows;
 };

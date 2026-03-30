@@ -3,23 +3,37 @@ import { useNavigate } from "react-router-dom";
 import Header from "../components/header";
 import { apiGet, apiPost } from "../utils/api";
 import Footer from "../components/footer";
+import ConfirmationModal from "../components/ConfirmationModal";
 
 export default function AdminManageUsers() {
      const [data, setData] = useState(null);
      const [selectedUser, setSelectedUser] = useState(null);
+     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+     const [userToDelete, setUserToDelete] = useState(null);
      const navigate = useNavigate();
 
      useEffect(() => {
-          apiGet("/users-by-court")
+          apiGet("/api/users")
                .then(result => setData(result))
                .catch(err => console.error("❌ Error:", err));
      }, []);
 
      const handleDelete = async (user) => {
-          if (!window.confirm(`Delete ${user.name}?`)) return;
-          await apiPost("/delete-user", user);
-          alert("User deleted");
-          window.location.reload();
+          setUserToDelete(user);
+          setIsDeleteModalOpen(true);
+     };
+
+     const confirmDelete = async () => {
+          try {
+               await apiPost("/api/users/delete", userToDelete);
+               setIsDeleteModalOpen(false);
+               setUserToDelete(null);
+               alert("User deleted successfully");
+               window.location.reload();
+          } catch (err) {
+               console.error("Delete error:", err);
+               alert("Delete failed: " + (err.data?.message || err.message));
+          }
      };
 
      const handleUpdate = async () => {
@@ -32,7 +46,7 @@ export default function AdminManageUsers() {
                     court: selectedUser.court ? Number(selectedUser.court) : undefined
                };
 
-               await apiPost("/update-user", payload);
+               await apiPost("/api/users/update", payload);
                alert("User updated successfully");
                setSelectedUser(null);
                window.location.reload();
@@ -130,13 +144,19 @@ export default function AdminManageUsers() {
                                    </div>
 
                                    <div className="!flex !flex-col">
-                                        <label className="!mb-[5px] !font-semibold !text-[#495057] !text-[14px]">Assigned Court ID</label>
-                                        <input
-                                             type="number"
-                                             className="!w-full !p-[10px] !border !border-[#ced4da] !rounded-[5px] focus:!border-[#28a745] focus:!outline-none"
-                                             value={selectedUser.court}
+                                        <label className="!mb-[5px] !font-semibold !text-[#495057] !text-[14px]">Assigned Court</label>
+                                        <select
+                                             className="!w-full !p-[10px] !border !border-[#ced4da] !rounded-[5px] focus:!border-[#28a745] focus:!outline-none !bg-white"
+                                             value={selectedUser.court || ""}
                                              onChange={e => setSelectedUser({ ...selectedUser, court: e.target.value })}
-                                        />
+                                        >
+                                             <option value="">Select a Court</option>
+                                             {data?.courts?.map(c => (
+                                                  <option key={c.court_id} value={c.court_id}>
+                                                       {c.court_name}
+                                                  </option>
+                                             ))}
+                                        </select>
                                    </div>
 
                                    <div className="!flex !flex-col">
@@ -164,6 +184,16 @@ export default function AdminManageUsers() {
                )}
 
                <Footer />
+
+               <ConfirmationModal 
+                    isOpen={isDeleteModalOpen}
+                    title="Delete User"
+                    message={`Are you sure you want to delete ${userToDelete?.role} "${userToDelete?.name}"? This action will remove their profile and database records forever.`}
+                    confirmText="Delete User"
+                    type="danger"
+                    onConfirm={confirmDelete}
+                    onCancel={() => setIsDeleteModalOpen(false)}
+               />
           </div>
      );
 }

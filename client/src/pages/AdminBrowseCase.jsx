@@ -4,6 +4,7 @@ import Header from "../components/header";
 import { API_BASE_URL } from "../config";
 import { apiGet, apiPost } from "../utils/api";
 import Footer from "../components/footer";
+import ConfirmationModal from "../components/ConfirmationModal";
 
 
 const getBadgeBg = (type) => {
@@ -52,6 +53,10 @@ export default function AdminBrowseCases({ setCurrentPage }) {
     const [caseTypes, setCaseTypes] = useState([]);
     const navigate = useNavigate();
     const [selectedCase, setSelectedCase] = useState(null);
+    const [allJudges, setAllJudges] = useState([]);
+    const [allStenos, setAllStenos] = useState([]);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [caseToDelete, setCaseToDelete] = useState(null);
 
     useEffect(() => {
         // ✅ Use apiGet with JWT
@@ -60,17 +65,47 @@ export default function AdminBrowseCases({ setCurrentPage }) {
             .catch((err) => console.error("❌ Error loading cases:", err));
     }, []);
 
+    const handleDelete = async (caseCode) => {
+        setCaseToDelete(caseCode);
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        try {
+            await apiPost("/api/cases/delete", { case_code: caseToDelete });
+            setCases((prev) => prev.filter((c) => c.caseCode !== caseToDelete));
+            setIsDeleteModalOpen(false);
+            setCaseToDelete(null);
+        } catch (err) {
+            console.error("Delete error:", err);
+            alert("Delete failed: " + (err.data?.message || err.message));
+        }
+    };
+
     useEffect(() => {
         async function fetchData() {
             try {
-                // ✅ Use apiGet with JWT
                 const data = await apiGet("/api/courts/types");
                 setCaseTypes(data);
             } catch (err) {
                 console.error("Error fetching case types:", err);
             }
         }
+        
+        async function fetchJudgesAndStenos() {
+            try {
+                // Fetch all judges and stenos by passing 'all' to the backend
+                const judgesData = await apiGet("/api/users/judges/all");
+                const stenosData = await apiGet("/api/users/stenos/all");
+                setAllJudges(judgesData || []);
+                setAllStenos(stenosData || []);
+            } catch (err) {
+                console.error("Error fetching judges/stenos:", err);
+            }
+        }
+
         fetchData();
+        fetchJudgesAndStenos();
     }, []);
 
     const filteredCases = cases.filter((c) => {
@@ -89,15 +124,6 @@ export default function AdminBrowseCases({ setCurrentPage }) {
             (status === "" || statusVal === status)
         );
     });
-    const handleDelete = async (c) => {
-        console.log("DELETE PAYLOAD:", c);
-        if (!window.confirm(`Delete case ${c.case_code}?`)) return;
-
-        // ✅ Use apiPost with JWT
-        await apiPost("/api/cases/delete", { case_code: c.case_code });
-
-        window.location.reload();
-    };
 
     const handleUpdate = async () => {
         try {
@@ -246,7 +272,7 @@ export default function AdminBrowseCases({ setCurrentPage }) {
                                                                 case_party1: c.party1,
                                                                 case_party2: c.party2,
                                                                 judge_code: c.judge_code || "",
-                                                                steno_code: c.stenographer || "",
+                                                                steno_code: c.steno_code || "",
                                                                 court: c.court || "",
                                                                 case_level: c.caseLevel || ""
                                                             })
@@ -257,11 +283,7 @@ export default function AdminBrowseCases({ setCurrentPage }) {
 
                                                     <button
                                                         className="!p-[6px_10px] xl:!p-[8px_16px] !border-none !rounded-[5px] !text-[11px] xl:!text-[13px] !font-semibold !cursor-pointer !bg-[#dc3545] !text-white hover:!bg-[#c82333] max-md:!w-full max-md:!py-[12px]"
-                                                        onClick={() =>
-                                                            handleDelete({
-                                                                case_code: c.caseCode
-                                                            })
-                                                        }
+                                                        onClick={() => handleDelete(c.caseCode)}
                                                     >
                                                         Delete
                                                     </button>
@@ -336,23 +358,45 @@ export default function AdminBrowseCases({ setCurrentPage }) {
                                     }
                                 />
 
-                                {/* Judge Code */}
-                                <label className="!block !mb-[5px] !font-semibold !text-[#495057] !mt-[15px]" htmlFor="edit-judge">Judge Code</label>
-                                <input id="edit-judge" className="!w-full !p-[10px] !mb-[5px] !border !border-[#ced4da] !rounded-[4px] !text-[1rem] focus:!border-[#28a745] focus:!outline-none"
+                                {/* Judge Dropdown */}
+                                <label className="!block !mb-[5px] !font-semibold !text-[#495057] !mt-[15px]" htmlFor="edit-judge">Select Judge</label>
+                                <select 
+                                    id="edit-judge" 
+                                    className="!w-full !p-[10px] !mb-[5px] !border !border-[#ced4da] !rounded-[4px] !text-[1rem] focus:!border-[#28a745] focus:!outline-none !bg-white"
                                     value={selectedCase.judge_code || ""}
                                     onChange={(e) =>
                                         setSelectedCase({ ...selectedCase, judge_code: e.target.value })
                                     }
-                                />
+                                >
+                                    <option value="">Choose a Judge</option>
+                                    {allJudges
+                                        .filter(j => !selectedCase.court || j.judge_court === selectedCase.court)
+                                        .map((j) => (
+                                            <option key={j.judge_code} value={j.judge_code}>
+                                                Justice {j.judge_name} ({j.judge_code})
+                                            </option>
+                                        ))}
+                                </select>
 
-                                {/* Stenographer Code */}
-                                <label className="!block !mb-[5px] !font-semibold !text-[#495057] !mt-[15px]" htmlFor="edit-steno">Stenographer Code</label>
-                                <input id="edit-steno" className="!w-full !p-[10px] !mb-[5px] !border !border-[#ced4da] !rounded-[4px] !text-[1rem] focus:!border-[#28a745] focus:!outline-none"
+                                {/* Stenographer Dropdown */}
+                                <label className="!block !mb-[5px] !font-semibold !text-[#495057] !mt-[15px]" htmlFor="edit-steno">Select Stenographer</label>
+                                <select 
+                                    id="edit-steno" 
+                                    className="!w-full !p-[10px] !mb-[5px] !border !border-[#ced4da] !rounded-[4px] !text-[1rem] focus:!border-[#28a745] focus:!outline-none !bg-white"
                                     value={selectedCase.steno_code || ""}
                                     onChange={(e) =>
                                         setSelectedCase({ ...selectedCase, steno_code: e.target.value })
                                     }
-                                />
+                                >
+                                    <option value="">Choose a Stenographer</option>
+                                    {allStenos
+                                        .filter(s => !selectedCase.court || s.steno_court === selectedCase.court)
+                                        .map((s) => (
+                                            <option key={s.steno_code} value={s.steno_code}>
+                                                {s.steno_name} ({s.steno_code})
+                                            </option>
+                                        ))}
+                                </select>
 
                                 {/* Actions */}
                                 <div className="!flex !justify-end !gap-[10px] !mt-[20px] !pt-[15px] !border-t !border-[#dee2e6] max-md:!flex-col max-md:!gap-[15px]">
@@ -374,6 +418,16 @@ export default function AdminBrowseCases({ setCurrentPage }) {
                     )}
                 </div>
             </div>
+
+            <ConfirmationModal 
+                isOpen={isDeleteModalOpen}
+                title="Delete Case"
+                message={`Are you sure you want to delete case ${caseToDelete}? This action cannot be undone.`}
+                confirmText="Delete Case"
+                type="danger"
+                onConfirm={confirmDelete}
+                onCancel={() => setIsDeleteModalOpen(false)}
+            />
 
             {/* Footer */}
             <Footer />

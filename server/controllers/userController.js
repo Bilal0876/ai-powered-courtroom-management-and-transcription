@@ -63,14 +63,14 @@ exports.deleteUser = async (req, res) => {
 
     try {
         const authUid = await User.getAuthUid(table, key, code);
-        if (!authUid) return res.status(404).json({ error: "User not found" });
+        if (!authUid) return res.status(404).json({ success: false, message: "User not found" });
 
         await supabaseAdmin.auth.admin.deleteUser(authUid).catch(err => console.error("Supabase delete failed:", err.message));
         await User.delete(table, key, code);
         res.json({ success: true, message: "User deleted successfully" });
     } catch (err) {
         console.error("DELETE ERROR:", err);
-        res.status(500).json({ error: "Database error", details: err.message });
+        res.status(500).json({ success: false, message: "Database error", details: err.message });
     }
 };
 
@@ -82,28 +82,29 @@ exports.updateUser = async (req, res) => {
     else if (role === "judge") { table = "judge_info"; codeColumn = "judge_code"; emailColumn = "judge_email"; nameColumn = "judge_name"; courtColumn = "judge_court"; birthdayColumn = "judge_birthday"; cnicColumn = "judge_cnic"; }
     else if (role === "chief-judge") { table = "chief_judge_info"; codeColumn = "chief_judge_code"; emailColumn = "chief_judge_email"; nameColumn = "chief_judge_name"; courtColumn = "chief_judge_court"; birthdayColumn = "chief_judge_birthday"; cnicColumn = "chief_judge_cnic"; }
     else if (role === "admin") { table = "admin_info"; codeColumn = "admin_code"; emailColumn = "admin_email"; nameColumn = "admin_name"; courtColumn = "admin_court"; }
-    else return res.status(400).json({ error: "Invalid role" });
+    else return res.status(400).json({ success: false, message: "Invalid role" });
 
     try {
         const authUid = await User.getAuthUid(table, codeColumn, code);
-        if (!authUid) return res.status(404).json({ error: "User not found" });
+        if (!authUid) return res.status(404).json({ success: false, message: "User not found" });
 
-        if (email || password || name) {
+        const lowerEmail = email ? email.toLowerCase() : null;
+        if (lowerEmail || password || name) {
             const updatePayload = {};
-            if (email) updatePayload.email = email;
+            if (lowerEmail) updatePayload.email = lowerEmail;
             if (password) updatePayload.password = password;
             if (name) updatePayload.user_metadata = { full_name: name };
             await supabaseAdmin.auth.admin.updateUserById(authUid, updatePayload);
         }
 
-        const fields = role === "admin" ? { [nameColumn]: name, [emailColumn]: email, [courtColumn]: court }
-                                       : { [nameColumn]: name, [emailColumn]: email, [cnicColumn]: cnic, [birthdayColumn]: birthday, [courtColumn]: court };
+        const fields = role === "admin" ? { [nameColumn]: name, [emailColumn]: lowerEmail, [courtColumn]: court }
+                                       : { [nameColumn]: name, [emailColumn]: lowerEmail, [cnicColumn]: cnic, [birthdayColumn]: birthday, [courtColumn]: court };
 
         await User.update(table, codeColumn, code, fields);
         res.json({ success: true, message: "User updated successfully" });
     } catch (err) {
         console.error("UPDATE ERROR:", err);
-        res.status(500).json({ error: "Database error", details: err.message });
+        res.status(500).json({ success: false, message: "Database error", details: err.message });
     }
 };
 
@@ -130,7 +131,8 @@ exports.getProfile = async (req, res) => {
 exports.getJudgeNames = async (req, res) => {
     const { court } = req.params;
     try {
-        const judges = await User.getJudgeList(court);
+        const queryCourt = (court === "0" || court === "all") ? null : court;
+        const judges = await User.getJudgeList(queryCourt);
         res.json(judges);
     } catch (err) {
         console.error(err);
@@ -141,7 +143,8 @@ exports.getJudgeNames = async (req, res) => {
 exports.getStenoNames = async (req, res) => {
     const { court } = req.params;
     try {
-        const stenos = await User.getStenoList(court);
+        const queryCourt = (court === "0" || court === "all") ? null : court;
+        const stenos = await User.getStenoList(queryCourt);
         res.json(stenos);
     } catch (err) {
         console.error(err);

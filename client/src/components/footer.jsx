@@ -4,7 +4,7 @@ export default function Footer() {
     const navigate = useNavigate();
 
     return (
-        <div className="!bg-[#2c3e50] !w-full !text-white !text-center !px-[25px] !py-[25px] !mt-[50px] !font-sans">
+        <div className="!bg-[#2c3e50] !w-full  !text-white !text-center !px-[25px] !py-[25px] !mt-[50px] !font-sans">
             <div>
                 <p className="!mb-[10px] max-sm:!text-[0.85rem]">&copy; 2025 Government of Punjab, Pakistan | Department of Social Justice</p>
                 <p className="!mb-[10px] max-sm:!text-[0.85rem]">Automated Trial Log System - Modernizing Pakistan's Judicial Documentation</p>

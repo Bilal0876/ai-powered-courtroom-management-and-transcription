@@ -2,78 +2,50 @@ import React, { useEffect, useRef, useState } from "react";
 import Header from "../components/header";
 import { useNavigate, useLocation } from "react-router-dom";
 import html2pdf from "html2pdf.js";
-import "../assets/styles/style.css";
 import { API_BASE_URL } from "../config";
-import { apiGet, apiPost, apiPut, apiDelete } from "../utils/api";
+import { apiGet } from "../utils/api";
 import Footer from "../components/footer";
 
 export default function JudgeReviewOrdersheet() {
      const navigate = useNavigate();
      const location = useLocation();
-
      const editorRef = useRef(null);
+
      const [ordersheet, setOrdersheet] = useState(null);
      const [loading, setLoading] = useState(true);
      const [error, setError] = useState(null);
-
-     const judge = JSON.parse(localStorage.getItem("user"));
+     const [user, setUser] = useState(null);
 
      const { selectedCase: rawCase } = location.state || {};
      const selectedCase = rawCase
           ? {
                case_id: rawCase.case_id,
                caseNumber: rawCase.caseNumber || rawCase.case_id,
-               caseCode: rawCase.case_code,
+               caseCode: rawCase.case_code || rawCase.case_id,
                caseTitle: rawCase.case_title,
                caseType: rawCase.case_type,
                party1: rawCase.party1 || rawCase.party_1 || "",
                party2: rawCase.party2 || rawCase.party_2 || "",
                hearingDate: rawCase.hearingDate || rawCase.submitted_at || "",
+               hearingTime: rawCase.hearingTime || "",
           }
           : null;
 
-
-     // useEffect(() => {
-     //      if (!selectedCase) {
-     //           console.error("❌ No case data found");
-     //           setError("No case data provided");
-     //           setLoading(false);
-     //           return;
-     //      }
-
-     //      console.log("📋 Fetching ordersheet for case:", selectedCase.case_id);
-     //      console.log("📦 Full case data:", selectedCase);
-
-     //      setLoading(true);
-     //      fetch(`${API_BASE_URL}/review-ordersheet/${selectedCase.case_id}`)
-     //           .then(res => {
-     //                console.log("📡 Response status:", res.status);
-     //                if (!res.ok) {
-     //                     throw new Error(`HTTP error! status: ${res.status}`);
-     //                }
-     //                return res.json();
-     //           })
-     //           .then(data => {
-     //                console.log("✅ Ordersheet data received:", data);
-     //                setOrdersheet(data.ordersheet);
-     //                setLoading(false);
-     //           })
-     //           .catch(err => {
-     //                console.error("❌ Error fetching ordersheet:", err);
-     //                setError(err.message);
-     //                setLoading(false);
-     //           });
-     // }, [selectedCase]);
      useEffect(() => {
-          if (!rawCase?.case_id) return;
+          const storedUser = JSON.parse(localStorage.getItem("user"));
+          if (!storedUser) {
+               navigate("/");
+               return;
+          }
+          setUser(storedUser);
 
-          setLoading(true);
+          if (!rawCase?.case_id) {
+               setError("No case context provided for matching.");
+               setLoading(false);
+               return;
+          }
 
-          fetch(`${API_BASE_URL}/review-ordersheet/${rawCase.case_id}`)
-               .then(res => {
-                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                    return res.json();
-               })
+          apiGet(`/api/ordersheets/review/${rawCase.case_id}`)
                .then(data => {
                     setOrdersheet(data.ordersheet);
                     setLoading(false);
@@ -82,16 +54,13 @@ export default function JudgeReviewOrdersheet() {
                     setError(err.message);
                     setLoading(false);
                });
-
-     }, [rawCase?.case_id]);
-
+     }, [rawCase?.case_id, navigate]);
 
      const submitDecision = async (status) => {
           const updatedHTML = editorRef.current?.innerHTML || "";
 
           try {
                let pdfBlob = null;
-
                if (status === "approved") {
                     pdfBlob = await exportOrdersheetToPDF();
                }
@@ -100,25 +69,29 @@ export default function JudgeReviewOrdersheet() {
                formData.append("id", selectedCase.case_id);
                formData.append("content", updatedHTML);
                formData.append("status", status);
-               formData.append("judgeName", judge.name);
+               formData.append("judgeName", user.name);
 
                if (pdfBlob) {
                     formData.append(
                          "pdf",
                          pdfBlob,
-                         `Ordersheet_${selectedCase.case_id}.pdf`
+                         `Ordersheet_${selectedCase.caseNumber}.pdf`
                     );
                }
 
-               const res = await fetch(`${API_BASE_URL}/approve-ordersheet`, {
+               const token = localStorage.getItem('access_token');
+               const res = await fetch(`${API_BASE_URL}/api/ordersheets/approve`, {
                     method: "POST",
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: formData
                });
 
-               if (!res.ok) throw new Error(`HTTP ${res.status}`);
+               if (!res.ok) throw new Error(`Status Correction Error: ${res.status}`);
 
-               alert(`Ordersheet ${status}`);
-               navigate("/judge-dash");
+               alert(`⚖️ Ordersheet ${status.toUpperCase()} successfully.`);
+               navigate("/judge-dashboard");
 
           } catch (err) {
                console.error("❌ Approval failed:", err);
@@ -126,27 +99,8 @@ export default function JudgeReviewOrdersheet() {
           }
      };
 
-
-     if (loading) return <div className="container"><p>Loading ordersheet...</p></div>;
-
-     if (error) return (
-          <div className="container">
-               <h2>Error Loading Ordersheet</h2>
-               <p style={{ color: "red" }}>❌ {error}</p>
-               <button onClick={() => navigate("/judge-dash")}>← Back to Dashboard</button>
-          </div>
-     );
-
-     if (!ordersheet) return (
-          <div className="container">
-               <p>No ordersheet data available</p>
-               <button onClick={() => navigate("/judge-dash")}>← Back to Dashboard</button>
-          </div>
-     );
-
      const exportOrdersheetToPDF = async () => {
           if (!editorRef.current) return null;
-
           const element = editorRef.current;
 
           const opt = {
@@ -156,118 +110,119 @@ export default function JudgeReviewOrdersheet() {
                jsPDF: { unit: "in", format: "a4", orientation: "portrait" }
           };
 
-          // ✅ Generate PDF ONCE
           const worker = html2pdf().set(opt).from(element);
-
-          // 1️⃣ Download for judge
-          await worker.save(`Ordersheet_${selectedCase.case_id}.pdf`);
-
-          // 2️⃣ Get same PDF as Blob
+          // await worker.save(`Ordersheet_${selectedCase.caseNumber}.pdf`); // Optional auto-download
           const pdfBlob = await worker.outputPdf("blob");
-
           return pdfBlob;
      };
 
+     if (loading) return (
+          <div className="!min-h-screen !flex !items-center !justify-center !bg-gray-50">
+               <div className="!animate-spin !rounded-full !h-12 !w-12 !border-b-2 !border-[#2c3e50]"></div>
+          </div>
+     );
+
+     if (error || !ordersheet) return (
+          <div className="!min-h-screen !flex !flex-col !items-center !justify-center !bg-[#f8fafc] !p-[20px] !text-center">
+               <div className="!text-[4rem] !mb-4">📂</div>
+               <h2 className="!text-[#2c3e50] !text-[1.8rem] !font-bold !mb-[10px]">Document Not Found</h2>
+               <p className="!text-gray-500 !mb-[30px] !max-w-[400px]">{error || "The requested ordersheet could not be retrieved from the central repository."}</p>
+               <button 
+                    onClick={() => navigate("/judge-dashboard")}
+                    className="!px-8 !py-3 !bg-[#2c3e50] !text-white !rounded-xl hover:!bg-[#1a252f] !transition-all !font-bold"
+               >
+                    Return to Docket
+               </button>
+          </div>
+     );
 
      return (
-          <div className="login-container">
-               {/* Header */}
+          <div className="!w-full !min-h-screen !flex !flex-col ![background-color:#f1f5f9] ![font-family:Inter,sans-serif]">
                <Header user={user} />
 
-               {/* Main Content */}
-               <div className="container">
-                    <div className="breadcrumb">
-                         <a href="#" onClick={() => navigate("/judge-dash")}>
-                              Dashboard
-                         </a>{" "}
-                         &gt; <a href="#" onClick={() => navigate("/judge-dash/pending-ordersheets")}>
-                              Select Case
-                         </a>{" "}
-                         &gt; <strong>Create Ordersheet</strong>
+               <div className="!flex-1 !p-[20px] lg:!p-[40px]">
+                    {/* Breadcrumb */}
+                    <div className="!max-w-[1000px] !mx-auto !flex !items-center !gap-2 !mb-8 !text-[13px]">
+                         <a href="#" onClick={(e) => { e.preventDefault(); navigate("/judge-dashboard"); }} className="!text-blue-600 hover:!underline">Dashboard</a>
+                         <span className="!text-gray-400">/</span>
+                         <a href="#" onClick={(e) => { e.preventDefault(); navigate(-1); }} className="!text-blue-600 hover:!underline">Pending Review</a>
+                         <span className="!text-gray-400">/</span>
+                         <span className="!text-gray-600 !font-semibold">Ordersheet Audit</span>
                     </div>
 
-                    <div className="ordersheet-page">
-                         {/* Case Details Card */}
-                         {selectedCase && (
-                              <div className="case-details-card">
-                                   <div className="card-header-enhanced">
-                                        <h3>Case Details</h3>
+                    <div className="!max-w-[1000px] !mx-auto">
+                         {/* Case Details Header */}
+                         <div className="!bg-white !rounded-[20px] !shadow-sm !p-[30px] !mb-10 !border !border-gray-100 !relative !overflow-hidden">
+                              <div className="!absolute !top-0 !right-0 !bg-[#2c3e50] !text-white !px-4 !py-1 !text-[10px] !font-bold !uppercase !tracking-tighter !rounded-bl-xl">Official Review</div>
+                              <div className="!flex !flex-col md:!flex-row !justify-between !items-start md:!items-center !gap-4">
+                                   <div>
+                                        <div className="!flex !items-center !gap-3 !mb-1">
+                                             <h2 className="!text-[#2c3e50] !font-black !text-[1.4rem] !m-0">{selectedCase.caseCode}</h2>
+                                             <span className="!px-2 !py-0.5 !bg-blue-50 !text-blue-600 !rounded !text-[10px] !font-bold !uppercase">{selectedCase.caseType}</span>
+                                        </div>
+                                        <p className="!text-gray-500 !text-[14px] !font-medium">{selectedCase.caseTitle || "Untitled Legal Matter"}</p>
                                    </div>
-                                   <div className="case-details-grid">
-                                        <div className="detail-item">
-                                             <span className="detail-label">Case Number</span>
-                                             <span className="detail-value">{selectedCase.caseCode}</span>
-                                        </div>
-                                        <div className="detail-item">
-                                             <span className="detail-label">Judge</span>
-                                             <span className="detail-value">Justice {judge.name}</span>
-                                        </div>
-                                        <div className="detail-item">
-                                             <span className="detail-label">Case Type</span>
-                                             <span className="detail-value">{selectedCase.caseType}</span>
-                                        </div>
-                                        <div className="detail-item">
-                                             <span className="detail-label">Case Title</span>
-                                             <span className="detail-value">{selectedCase.caseTitle}</span>
-                                        </div>
-                                        <div className="detail-item">
-                                             <span className="detail-label">Parties</span>
-                                             <span className="detail-value">{selectedCase.party1} vs {selectedCase.party2}</span>
-                                        </div>
-                                        <div className="detail-item">
-                                             <span className="detail-label">Date & Time</span>
-                                             <span className="detail-value">{selectedCase.hearingDate} - {selectedCase.hearingTime}</span>
-                                        </div>
+                                   <div className="!text-left md:!text-right">
+                                        <div className="!text-[12px] !font-bold !text-gray-400 !uppercase !tracking-widest !mb-1">Active Litigants</div>
+                                        <div className="!text-[#2c3e50] !text-[13px] !font-bold">{selectedCase.party1} <span className="!text-gray-300 !mx-1">VS</span> {selectedCase.party2}</div>
                                    </div>
                               </div>
-                         )}
-                         <div className="container">
-                              <h2>Review Ordersheet</h2>
+                         </div>
 
-                              <div
-                                   ref={editorRef}
-                                   contentEditable
-                                   suppressContentEditableWarning
-                                   dangerouslySetInnerHTML={{ __html: ordersheet.content_html }}
-                                   style={{
-                                        width: "100%",
-                                        border: "1px solid #ccc",
-                                        padding: "20px",
-                                        minHeight: "600px",
-                                        background: "#fff",
-                                        marginTop: "20px"
-                                   }}
-                              />
+                         {/* Editor / Parchment View */}
+                         <div className="!bg-[#ced4da] !p-[20px] md:!p-[60px] !rounded-[24px] !shadow-inner !mb-[120px] !flex !justify-center">
+                              <div className="!w-full !max-w-[850px] !bg-white !shadow-[0_20px_50px_rgba(0,0,0,0.15)] !p-[40px] md:!p-[80px] !min-h-[1100px] !rounded-[4px] !border !border-gray-300 !relative">
+                                   {/* Legal Seal Placeholder */}
+                                   <div className="!absolute !top-10 !right-10 !w-24 !h-24 !opacity-10">
+                                        <svg viewBox="0 0 100 100" className="!fill-[#2c3e50]">
+                                             <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="2" />
+                                             <text x="50" y="55" fontSize="12" textAnchor="middle" fontWeight="bold">JUSTITIA</text>
+                                        </svg>
+                                   </div>
 
-                              <div style={{ marginTop: "20px", display: "flex", gap: "10px" }}>
-                                   <button
-                                        className="logout-btn"
-                                        style={{ background: "linear-gradient(135deg, #22a328ff 0%, #1d7b23ff 100%)" }}
-                                        onClick={() => submitDecision("approved")}
-                                   >
-                                        Approve
-                                   </button>
-                                   <button
-                                        className="logout-btn"
-                                        style={{ background: "linear-gradient(135deg, #f71e1eff 0%, #7b241dff 100%)" }}
-                                        onClick={() => submitDecision("rejected")}
-                                   >
-                                        Reject
-                                   </button>
-                                   <button
-                                        className="logout-btn"
-                                        style={{ background: "linear-gradient(135deg, #8d8d8dff 0%, #3e3d3dff 100%)" }}
-                                        onClick={() => navigate("/judge-dash")}
-                                   >
-                                        ← Cancel
-                                   </button>
+                                   <div
+                                        ref={editorRef}
+                                        contentEditable
+                                        suppressContentEditableWarning
+                                        dangerouslySetInnerHTML={{ __html: ordersheet.content_html }}
+                                        className="!w-full !min-h-[1000px] !outline-none !font-serif !text-[17px] !leading-[1.9] !text-black prose prose-slate max-w-none"
+                                        style={{ fontVariantLigatures: "none", whiteSpace: "pre-wrap" }}
+                                   />
                               </div>
                          </div>
                     </div>
                </div>
 
+               {/* Modern Sticky Action Bar */}
+               <div className="!fixed !bottom-6 !left-1/2 !-translate-x-1/2 !w-[90%] !max-w-[900px] !bg-[#2c3e50]/95 !backdrop-blur-md !p-4 !rounded-[24px] !shadow-2xl !z-[1000] !border !border-white/10">
+                    <div className="!flex !flex-col md:!flex-row !justify-between !items-center !gap-4">
+                         <div className="!hidden md:!block !pl-4">
+                              <p className="!text-white/60 !text-[9px] !uppercase !tracking-[0.2em] !font-bold">Judicial Attestation</p>
+                              <p className="!text-white !text-[13px] !font-medium">Verify content before final seal</p>
+                         </div>
+                         <div className="!flex !gap-3 !w-full md:!w-auto">
+                              <button
+                                   onClick={() => submitDecision("approved")}
+                                   className="!flex-1 md:!flex-none !px-8 !py-4 !bg-emerald-500 !text-white !rounded-[18px] !font-bold hover:!bg-emerald-600 !transition-all !shadow-lg active:!scale-95 !flex !items-center !justify-center !gap-2"
+                              >
+                                   <span>⚖️</span> Approve & Seal
+                              </button>
+                              <button
+                                   onClick={() => submitDecision("rejected")}
+                                   className="!flex-1 md:!flex-none !px-8 !py-4 !bg-rose-500 !text-white !rounded-[18px] !font-bold hover:!bg-rose-600 !transition-all !shadow-lg active:!scale-95 !flex !items-center !justify-center !gap-2"
+                              >
+                                   <span>❌</span> Reject
+                              </button>
+                              <button
+                                   onClick={() => navigate(-1)}
+                                   className="!px-6 !py-4 !text-white/70 !rounded-[18px] !font-bold hover:!bg-white/10 !transition-all"
+                              >
+                                   Discard
+                              </button>
+                         </div>
+                    </div>
+               </div>
 
-               {/* Footer */}
                <Footer />
           </div>
      );

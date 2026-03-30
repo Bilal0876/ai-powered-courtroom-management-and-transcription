@@ -1,7 +1,7 @@
 const db = require('../config/db');
 
 exports.checkEmailExists = async (table, emailField, email) => {
-  const result = await db.query(`SELECT ${emailField} FROM ${table} WHERE ${emailField} = $1`, [email]);
+  const result = await db.query(`SELECT ${emailField} FROM ${table} WHERE LOWER(${emailField}) = LOWER($1)`, [email]);
   return result.rows.length > 0;
 };
 
@@ -14,11 +14,11 @@ exports.create = async (table, data, codePrefix, codeColumn) => {
     // admin_info in this schema only has name, email, court, and auth_uid
     // admin_code was made nullable to allow this 2-step process
     insertQuery = `INSERT INTO ${table} (admin_name, admin_email, admin_court, auth_uid) VALUES ($1, $2, $3, $4) RETURNING id`;
-    params = [fullName, email, court, authUid];
+    params = [fullName, email.toLowerCase(), court, authUid];
   } else {
     const prefix = table.split('_')[0];
     insertQuery = `INSERT INTO ${table} (${prefix}_name, ${prefix}_email, ${prefix}_cnic, ${prefix}_birthday, ${prefix}_court, auth_uid) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`;
-    params = [fullName, email, cnic, birthDate, court, authUid];
+    params = [fullName, email.toLowerCase(), cnic, birthDate, court, authUid];
   }
 
   await db.query("BEGIN");
@@ -79,13 +79,13 @@ exports.update = async (table, codeColumn, code, fields) => {
 
 exports.findProfileByEmail = async (table, emailField, codeField, nameField, email, courtField) => {
     const query = `SELECT t.id AS "dbId", t.${codeField} AS code, t.${nameField} AS name, t.${emailField} AS email, c.Court_Name AS court 
-                   FROM ${table} t JOIN court_info c ON c.court_id = t.${courtField} WHERE t.${emailField} = $1`;
+                   FROM ${table} t JOIN court_info c ON c.court_id = t.${courtField} WHERE LOWER(t.${emailField}) = LOWER($1)`;
     const result = await db.query(query, [email]);
     return result.rows[0];
 };
 
 exports.getJudgeList = async (courtId) => {
-    let query = "SELECT judge_code, judge_name FROM judge_info";
+    let query = "SELECT judge_code, judge_name, judge_court FROM judge_info";
     const params = [];
     if (courtId) {
         query += " WHERE judge_court = $1";
@@ -97,7 +97,7 @@ exports.getJudgeList = async (courtId) => {
 };
 
 exports.getStenoList = async (courtId) => {
-    let query = "SELECT steno_code, steno_name FROM stenographer_info";
+    let query = "SELECT steno_code, steno_name, steno_court FROM stenographer_info";
     const params = [];
     if (courtId) {
         query += " WHERE steno_court = $1";

@@ -88,3 +88,13 @@ exports.saveHearingRecording = async (req, res) => {
         res.status(500).json({ success: false });
     }
 };
+
+exports.getCompletedCasesForChiefJudge = async (req, res) => {
+    try {
+        const cases = await Case.findAllCompleted();
+        res.json({ success: true, data: cases });
+    } catch (err) {
+        console.error("❌ Error fetching completed cases:", err);
+        res.status(500).json({ success: false, message: "Database error" });
+    }
+};

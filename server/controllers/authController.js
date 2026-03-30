@@ -29,8 +29,9 @@ exports.login = async (req, res) => {
   }
 
   try {
+    const lowerEmail = email.toLowerCase();
     const { data: authData, error: authError } = await supabaseAdmin.auth.signInWithPassword({
-      email: email,
+      email: lowerEmail,
       password: password
     });
 
@@ -43,8 +44,8 @@ exports.login = async (req, res) => {
     }
 
     const authUid = authData.user.id;
-    const query = `SELECT * FROM ${table} WHERE ${emailField} = $1 AND auth_uid = $2`;
-    const result = await db.query(query, [email, authUid]);
+    const query = `SELECT * FROM ${table} WHERE LOWER(${emailField}) = $1 AND auth_uid = $2`;
+    const result = await db.query(query, [lowerEmail, authUid]);
 
     if (result.rows.length === 0) {
       return res.status(403).json({
