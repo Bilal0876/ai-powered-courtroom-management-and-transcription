@@ -27,7 +27,7 @@ export default function JudgeViewCases() {
                 const user = storedUser ? JSON.parse(storedUser) : null;
 
                 if (!user) {
-                    console.error("❌ No user found in AsyncStorage");
+                    console.error(" No user found in AsyncStorage");
                     return;
                 }
 
@@ -40,7 +40,7 @@ export default function JudgeViewCases() {
                 setCases(data); // assuming API returns array of cases
 
             } catch (err) {
-                console.error("❌ Error loading cases:", err);
+                console.error(" Error loading cases:", err);
             }
         };
 

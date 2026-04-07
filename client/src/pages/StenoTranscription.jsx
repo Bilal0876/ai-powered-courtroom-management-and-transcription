@@ -614,12 +614,12 @@ export default function TranscriptionApp() {
         setAudioUrl(null);
         setDuration('0:00');
 
-        console.log('🧹 Session cleared - ready for new recording');
+        console.log(' Session cleared - ready for new recording');
     }
 
     function exportToPDF() {
         if (!sessionCompleted || !lastPdfData || !lastPdfFilename) {
-            alert("⚠️ No PDF available. Please complete a recording session first.");
+            alert(" No PDF available. Please complete a recording session first.");
             return;
         }
 
@@ -629,12 +629,12 @@ export default function TranscriptionApp() {
 
     function downloadAudio() {
         if (!sessionCompleted || !lastAudioData || !lastAudioFilename) {
-            alert('⚠️ No audio available. Please complete a recording session first.');
+            alert('No audio available. Please complete a recording session first.');
             return;
         }
 
         downloadFile(lastAudioData, lastAudioFilename, 'audio/wav');
-        console.log('🎵 Audio downloaded to user-selected location');
+        console.log(' Audio downloaded to user-selected location');
     }
 
     function downloadFile(base64Data, filename, mimeType) {
@@ -755,7 +755,7 @@ export default function TranscriptionApp() {
 
                 {submittedForApproval && (
                     <div className="approval-banner">
-                        🔒 Transcript submitted for judge approval. Editing is locked.
+                        Transcript submitted for judge approval. Editing is locked.
                     </div>
                 )}
 
