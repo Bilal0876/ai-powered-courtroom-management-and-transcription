@@ -9,6 +9,10 @@ The system enhances accuracy, efficiency, and accessibility in managing court he
 
 ---
 
+## Live at: https://automated-trial-log-xdoi.vercel.app/ 
+
+---
+
 ##  Objectives
 - Provide real-time speech-to-text transcription of court hearings  
 - Reduce human error in manual documentation  
